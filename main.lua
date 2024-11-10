@@ -5,8 +5,16 @@ function love.load()
     anim8 = require 'libs/anim8'
     sti = require 'libs/sti'
     cameraFile = require 'libs/camera'
+    require ('libs/show')
 
     cam = cameraFile()
+
+    sounds = {}
+    sounds.jump = love.audio.newSource('music/jump.wav', 'static')
+    sounds.music = love.audio.newSource('music/music.mp3', 'stream')
+    sounds.music:setLooping(true)
+    sounds.music:setVolume(0.2)
+    sounds.music:play()
 
     sprites = {}
     sprites.playerSheet = love.graphics.newImage('sprites/playerSheet.png')
@@ -38,9 +46,16 @@ function love.load()
     flagX = 0
     flagY = 0
 
-    currentLevel = 'level1'
+    saveData = {}
+    saveData.currentLevel = 'level1'
 
-    loadMap(currentLevel)
+    saveData.currentLevel = 'level1'
+
+    if love.filesystem.getInfo("data.lua") then
+        local data = love.filesystem.load("data.lua")
+        data()
+    end
+    loadMap(saveData.currentLevel)
 end
 
 function love.update(dt)
@@ -54,9 +69,9 @@ function love.update(dt)
 
     local colliders = world:queryCircleArea(flagX, flagY, 10, {'Player'})
     if #colliders > 0 then
-        if currentLevel == 'level1' then
+        if saveData.currentLevel == 'level1' then
             loadMap('level2')
-        elseif currentLevel == 'level2' then
+        elseif saveData.currentLevel == 'level2' then
                 loadMap('level1')
         end
     end
@@ -75,6 +90,7 @@ function love.keypressed(key)
     if key == 'up' then
         if player.grounded then
             player:applyLinearImpulse(0, -4000)
+            sounds.jump:play()
         end
     end
 
@@ -90,7 +106,8 @@ function love.mousepressed(x, y, button)
 end
 
 function loadMap(mapName)
-    currentLevel = mapName
+    saveData.currentLevel = mapName
+    love.filesystem.write('data.lua', table.show(saveData, "saveData"))
     destroyMapAssets()
     player:setPosition(300, 100)
     gameMap = sti('maps/' .. mapName .. '.lua')
